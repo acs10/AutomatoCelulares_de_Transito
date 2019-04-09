@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Autômato de transito</title>
+    <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
+    <meta name="viewport" content="width=device-width">
+<style>
+body {
+    
+    background-image: url("https://steamcdn-a.akamaihd.net/steamcommunity/public/images/items/526920/7d3c2adfab2fa148b7b657e6af4a54413b71ab72.jpg");
+}
+button{
+  background-color:blueviolet;
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+}
+#customers {
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#customers td, #customers th {
+    border: 0px  ;
+    padding: 100px;
+}
+#customers th {
+    padding-top: 80px;
+    padding-bottom: 32px;
+    text-align:left ;
+}
+</style>
+</head>
+  <body>
+  <table id="customers">
+      <tr>
+          <th>
+              <br>
+                    <button id="animacao">Iniciar</button>
+                    <button id="pare">Parar</button>
+                    <button id="limpe">Limpar</button>  
+                    <button id="geracao">Avançar</button>  
+                    <br>
+                    <br>
+              <canvas id="canvas"></canvas>
+              <script src="external/jquery-2.2.0.min.js"></script>] 
+            <script>
+              var jogoDaVida = (function () {          
+              var tamanhoCelula = 20;  
+              var corCelulaViva = "orange";  
+              var corCelulaMorta = "black";  
+              var corBorda = "white";  
+              var fileirasTabuleiro = 15;
+              var colunasTabuleiro = 23;
+              var animando = false;
+              var fps = 16;
+              var intervalo = 1000 / fps; 
+              var canvas = document.getElementById("canvas");
+              var context = canvas.getContext("2d");  
+
+              canvas.width = 470;  
+              canvas.height = 300;  
+              context.lineWidth = 4; 
+              context.strokeStyle = corBorda; 
+              function Celula(fileira, coluna) {
+
+                this.fileira = fileira;
+                this.coluna = coluna;
+                this.viva = false;  
+                this.vivaNaProximaGeracao = false;
+              }
+              Celula.prototype.desenhe = function() {
+                var cantoX = tamanhoCelula * this.coluna;  
+                var cantoY = tamanhoCelula * this.fileira;
+                var corCelula;
+                if (this.viva) {
+                  corCelula = corCelulaViva;
+                } else {
+                  corCelula = corCelulaMorta;
+                }
+                if (this.morta) {
+                  corCelula = corCelulaMorta;
+                } 
+                
+
+                context.fillStyle = corCelula;
+                context.fillRect(cantoX, cantoY, tamanhoCelula, tamanhoCelula);
+                context.strokeRect(cantoX, cantoY, tamanhoCelula, tamanhoCelula);
+              };
+              function Tabuleiro(fileiras, colunas) {
+                this.fileiras = fileiras;
+                this.colunas = colunas;
+
+                this.celulas = [];
+                for (var fileira = 0; fileira < this.fileiras; fileira++) {
+                  this.celulas[fileira] = [];  
+                  for (var coluna = 0; coluna < this.colunas; coluna++) {
+                    this.celulas[fileira][coluna] = new Celula(fileira, coluna);
+                  }
+                }
+                this.desenhe();
+              }
+              Tabuleiro.prototype.desenhe = function() {
+                for (var fileira = 0; fileira < this.fileiras; fileira++) {
+                  for (var coluna = 0; coluna < this.colunas; coluna++) {
+                    this.celulas[fileira][coluna].desenhe();
+                  }
+                }
+              };
+              
+              var tabuleiro = new Tabuleiro(fileirasTabuleiro, colunasTabuleiro);
+              canvas.addEventListener('click', function(event) {
+
+                var boundingRect = this.getBoundingClientRect();
+
+                var x = event.clientX - boundingRect.left;
+                var y = event.clientY - boundingRect.top;
+                
+                var fileira = Math.floor(y / tamanhoCelula);
+                var coluna = Math.floor(x / tamanhoCelula);
+                if (fileira < tabuleiro.fileiras && coluna < tabuleiro.colunas) {
+
+                  tabuleiro.celulas[fileira][coluna].viva = !tabuleiro.celulas[fileira][coluna].viva;
+                  tabuleiro.celulas[fileira][coluna].desenhe();
+                }
+              });
+              Tabuleiro.prototype.contarVizinhasVivas = function(fileira, coluna) {
+                var vizinhasVivas = 0;
+                for (var f = fileira - 1; f <= fileira + 1; f++) {
+                  for (var c = coluna - 1; c <= coluna + 1; c++) {
+                    
+
+                    if (!(f == fileira && c == coluna)) {
+                      
+
+                      if (f >= 0 && f < this.fileiras && c >= 0 && c < this.colunas) {
+                        if (this.celulas[f][c].viva) {
+                          vizinhasVivas++;
+                        }
+                      }
+                    }
+                  }
+                }
+                for (var f = fileira - 2; f <= fileira + 2; f++) {
+                  for (var c = coluna - 2; c <= coluna + 2; c++) {
+                    
+
+                    if (!(f == fileira && c == coluna)) {
+                      
+
+                      if (f >= 0 && f < this.fileiras && c >= 0 && c < this.colunas) {
+                        if (this.celulas[f][c].viva) {
+                          vizinhasVivas++;
+                        }
+                      }
+                    }
+                  }
+                }
+                return vizinhasVivas;
+              };
+              Tabuleiro.prototype.celulaProximaGeracao = function(fileira, coluna) {
+                var vizinhasVivas = this.contarVizinhasVivas(fileira, coluna);
+            
+                var celula = this.celulas[fileira][coluna];
+                var vivaNaProximaGeracao;
+                
+                if (this.celulas[fileira][coluna].viva) {
+                  if (vizinhasVivas[+1] == 0) {
+                    vivaNaProximaGeracao = true;
+                  }
+                  if (vizinhasVivas[+1] == 1) {
+                    vivaNaProximaGeracao = false;
+                  }
+                  if (vizinhasVivas[-2] == 0){
+                    vivaNaProximaGeracao = true;	
+                  }
+                } 
+                if (this.celulas[fileira][coluna].morta) {
+                  if (vizinhasVivas[-2] == 1) {
+                    vivaNaProximaGeracao = true;
+                  }
+                } 
+                else {
+                      if (vizinhasVivas == 2){
+                        vivaNaProximaGeracao = true;
+                      } else {
+                        vivaNaProximaGeracao = false;
+                      }
+                    }
+                celula.vivaNaProximaGeracao = vivaNaProximaGeracao;
+                return vivaNaProximaGeracao;
+              };
+              Tabuleiro.prototype.tabuleiroProximaGeracao = function() {
+                var f;
+                var c;
+                for (f = 0; f < this.fileiras; f++) {
+                  for (c = 0; c < this.colunas; c++) {
+                    this.celulaProximaGeracao(f, c);
+                  }
+                }
+                for (f = 0; f < this.fileiras; f++) {
+                  for (c = 0; c < this.colunas; c++) {
+                    this.celulas[f][c].viva = this.celulas[f][c].vivaNaProximaGeracao;
+                  }
+                }
+                this.desenhe();
+              };
+              Tabuleiro.prototype.limpeTabuleiro = function() {
+                for (var f = 0; f < this.fileiras; f++) {
+                  for (var c = 0; c < this.colunas; c++) {
+                    this.celulas[f][c].viva = false;
+                  }
+                }
+                this.desenhe();
+              };
+              function lacoDeAnimacao() {
+                setTimeout(function() {
+                  if (animando) {
+                    requestAnimationFrame(lacoDeAnimacao);
+                    tabuleiro.tabuleiroProximaGeracao();
+                  }
+                }, intervalo);
+              }
+              $("#geracao").click(function () {
+                tabuleiro.tabuleiroProximaGeracao();
+              });
+              
+              $("#animacao").click(function () {
+                animando = true;
+                lacoDeAnimacao();
+                $(this).attr("disabled", true);
+                $("#geracao").attr("disabled", true);
+              });
+              
+              $("#pare").click(function () {
+                animando = false;
+                $("#animacao").removeAttr("disabled");
+                $("#geracao").removeAttr("disabled");
+              });
+                
+              $("#limpe").click(function () {
+                $("#pare").click();  
+                tabuleiro.limpeTabuleiro();
+              });
+              
+              Tabuleiro.prototype.darVida = function(fileira, coluna) {
+                this.celulas[fileira][coluna].viva = true;
+              };
+              Tabuleiro.prototype.criarCriatura = function(coordinates) {
+                coordinates.forEach(function (point) {
+                  this.darVida.apply(this, point);
+                }, this);
+              };
+              
+              tabuleiro.desenhe();
+            })();
+            </script>
+    </th>
+    <th>
+        <h1 ><font color="white"> Autômato Celulares (Trânsito)</font><br></h1>
+        <ul>
+            <li>
+              <h3><font color="#E0FFFF">Os autómatos celulares elementares são os modelos de evolução temporal mais simples com capacidade 
+                para exibir comportamento complicado. Por isso, é muito fácil de aceitar a importância do seu estudo, quando se procura 
+                entender a complexidade que vemos surgir de uma forma transversal em todas as Ciências Naturais e Humanas.Nosso autômato celular 
+                tem como objetivo de  Simulação de tráfego, verificar as possibilidades de movimentação em um cruzamento, onde 
+                são aplicadas regras para a execução do autômato criado. </font></h3>
+            </li>
+        </ul>
+    </th>
+    </tr>
+  </table>
+  </body>
+</html>
